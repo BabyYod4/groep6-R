@@ -1,0 +1,174 @@
+---
+title: "Ensemble Test"
+authors: "Arsalan Anwari"
+date: "10/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading data and libraries
+
+```{r load, echo=FALSE}
+library(tidyverse)
+library(e1071)
+library(ggplot2)
+
+df_train  <- read_rds("data/train.rds")
+df_test <- read_rds("data/test.rds")
+```
+
+
+```{r}
+train_set$Medu <- factor(train_set$Medu)
+train_set$Fedu <- factor(train_set$Fedu)
+train_set$traveltime <- factor(train_set$studytime)
+train_set$famrel <- factor(train_set$famrel)
+train_set$freetime <- factor(train_set$freetime)
+train_set$goout <- factor(train_set$goout)
+train_set$Dalc <- factor(train_set$Dalc)
+train_set$Walc <- factor(train_set$Walc)
+train_set$health <- factor(train_set$health)
+
+valid_set$Medu <- factor(valid_set$Medu)
+valid_set$Fedu <- factor(valid_set$Fedu)
+valid_set$traveltime <- factor(valid_set$studytime)
+valid_set$famrel <- factor(valid_set$famrel)
+valid_set$freetime <- factor(valid_set$freetime)
+valid_set$goout <- factor(valid_set$goout)
+valid_set$Dalc <- factor(valid_set$Dalc)
+valid_set$Walc <- factor(valid_set$Walc)
+valid_set$health <- factor(valid_set$health)
+
+```
+
+# Analysing data
+
+```{r analyse}
+
+head(df_train)
+summary(df_train)
+
+head(df_test)
+summary(df_test)
+```
+
+# Splitting data
+
+```{r split}
+
+#df_train <- transform(df_train, score = (score - min(score)) / (max(score) - min(score)))
+
+smp_size <- floor(0.75 * nrow(df_train))
+
+set.seed(123)
+train_ind <- sample(seq_len(nrow(df_train)), size = smp_size)
+
+train_set <- df_train[train_ind, ]
+valid_set <- df_train[-train_ind, ]
+
+```
+
+# Chosing different Essemble model
+
+- Support Vector Machines
+
+```{r models}
+
+set.seed(150)
+
+model <- svm(formula = score ~ ., data=train_set, type = "eps-regression")
+
+summary(model)
+
+```
+
+# Predict values and test MSE with validation set
+```{r predict_test}
+
+mse <- function(y_true, y_pred)
+{
+  val <- mean((y_true-y_pred)^2)
+  return (val)
+}
+
+y_pred_val <- predict(model, valid_set)
+score_val <- mse(valid_set$score, y_pred_val)
+
+cat("MSE: ", score_val , "\r\n")
+
+
+
+```
+
+# Tuning model
+
+```{r tune}
+
+tuneResult <- tune(
+  svm, 
+  score ~ .,
+  data = train_set,
+  ranges = list(epsilon = seq(0,1,0.1), cost = 2^(seq(0.5,8,.5)))
+)
+
+tuneEpsilon <- 
+  tune(svm, score ~ .,  data = train_set,
+  ranges = list(epsilon = seq(tuneResult$best.model$epsilon-.10, tuneResult$best.model$epsilon+.15, 0.01), 
+  cost = seq(2^(log2(tuneResult$best.model$cost)-1), 2^(log2(tuneResult$best.model$cost)+1), length=6))
+)
+
+plot(tuneEpsilon)
+print(tuneEpsilon)
+```
+
+
+# Retesting model
+
+```{r retest}
+
+set.seed(150)
+
+model_tuned <- svm(formula = score ~ ., data=train_set, type = "eps-regression", epsilon=0.25, cost=0.7071068)
+
+y_pred_val_tuned <- predict(model, valid_set)
+score_val_tuned <- mse(valid_set$score, y_pred_val_tuned)
+
+cat("MSE (tuned): ", score_val_tuned , "\r\n")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

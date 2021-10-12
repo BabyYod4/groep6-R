@@ -1,0 +1,59 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+train_set$Medu <- factor(train_set$Medu)
+train_set$Fedu <- factor(train_set$Fedu)
+train_set$traveltime <- factor(train_set$studytime)
+train_set$famrel <- factor(train_set$famrel)
+train_set$freetime <- factor(train_set$freetime)
+train_set$goout <- factor(train_set$goout)
+train_set$Dalc <- factor(train_set$Dalc)
+train_set$Walc <- factor(train_set$Walc)
+train_set$health <- factor(train_set$health)
+
+valid_set$Medu <- factor(valid_set$Medu)
+valid_set$Fedu <- factor(valid_set$Fedu)
+valid_set$traveltime <- factor(valid_set$studytime)
+valid_set$famrel <- factor(valid_set$famrel)
+valid_set$freetime <- factor(valid_set$freetime)
+valid_set$goout <- factor(valid_set$goout)
+valid_set$Dalc <- factor(valid_set$Dalc)
+valid_set$Walc <- factor(valid_set$Walc)
+valid_set$health <- factor(valid_set$health)
+
+library(MASS)
+# Fit the full model 
+full.model <- lm(score ~., data = train_set)
+# Stepwise regression model
+step.model <- stepAIC(full.model, direction = "both", 
+                      trace = FALSE)
+summary(step.model)
+mse_step_model <- mean(step.model$residuals^2)
+mse_step_model
+
+
+
+```
+
+``` {r}
+model <- lm(formula = score ~ school + sex + Pstatus + Mjob + Fjob + reason + 
+    failures + schoolsup + romantic + freetime + goout + studytime, 
+    data = train_set)
+
+mse <- function(y_true, y_pred)
+{
+  val <- mean((y_true-y_pred)^2)
+  return (val)
+}
+
+y_pred <- predict(step.model, newdata = valid_set)
+
+mse(valid_set$score, y_pred)
+```
