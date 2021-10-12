@@ -1,0 +1,152 @@
+---
+title: "Ensemble Test"
+authors: "Arsalan Anwari"
+date: "10/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading data and libraries
+
+```{r load, echo=FALSE}
+library(tidyverse)
+library(e1071)
+library(ggplot2)
+
+df_train  <- read_rds("data/train.rds")
+df_test <- read_rds("data/test.rds")
+```
+
+
+# Analysing data
+
+```{r analyse}
+
+head(df_train)
+summary(df_train)
+
+head(df_test)
+summary(df_test)
+```
+
+# Splitting data
+
+```{r split}
+
+#df_train <- transform(df_train, score = (score - min(score)) / (max(score) - min(score)))
+
+smp_size <- floor(0.75 * nrow(df_train))
+
+set.seed(123)
+train_ind <- sample(seq_len(nrow(df_train)), size = smp_size)
+
+train_set <- df_train[train_ind, ]
+valid_set <- df_train[-train_ind, ]
+
+```
+
+# Chosing different Essemble model
+
+- Support Vector Machines
+
+```{r models}
+
+set.seed(150)
+
+model <- svm(formula = score ~ ., data=train_set, type = "eps-regression")
+
+summary(model)
+
+```
+
+# Predict values and test MSE with validation set
+```{r predict_test}
+
+mse <- function(y_true, y_pred)
+{
+  val <- mean((y_true-y_pred)^2)
+  return (val)
+}
+
+y_pred_val <- predict(model, valid_set)
+score_val <- mse(valid_set$score, y_pred_val)
+
+cat("MSE: ", score_val , "\r\n")
+
+
+
+```
+
+# Tuning model
+
+```{r tune}
+
+tuneResult <- tune(
+  svm, 
+  score ~ .,
+  data = train_set,
+  ranges = list(epsilon = seq(0,1,0.1), cost = 2^(seq(0.5,8,.5)))
+)
+
+tuneEpsilon <- 
+  tune(svm, score ~ .,  data = train_set,
+  ranges = list(epsilon = seq(tuneResult$best.model$epsilon-.15, tuneResult$best.model$epsilon+.15, 0.01), 
+  cost = seq(2^(log2(tuneResult$best.model$cost)-1), 2^(log2(tuneResult$best.model$cost)+1), length=6))
+)
+
+plot(tuneEpsilon)
+print(tuneEpsilon)
+```
+
+
+# Retesting model
+
+```{r retest}
+
+set.seed(150)
+
+model_tuned <- svm(formula = score ~ ., data=train_set, type = "eps-regression", epsilon=0.3, cost=0.7071068)
+
+y_pred_val_tuned <- predict(model, valid_set)
+score_val_tuned <- mse(valid_set$score, y_pred_val_tuned)
+
+cat("MSE (tuned): ", score_val_tuned , "\r\n")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
