@@ -1,0 +1,166 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+
+
+train <- read_rds("data/train.rds")
+test <- read_rds("data/test.rds")
+
+
+train$Medu <- factor(train$Medu)
+train$Fedu <- factor(train$Fedu)
+train$traveltime <- factor(train$studytime)
+train$famrel <- factor(train$famrel)
+train$freetime <- factor(train$freetime)
+train$goout <- factor(train$goout)
+train$Dalc <- factor(train$Dalc)
+train$Walc <- factor(train$Walc)
+train$health <- factor(train$health)
+
+test$Medu <- factor(test$Medu)
+test$Fedu <- factor(test$Fedu)
+test$traveltime <- factor(test$studytime)
+test$famrel <- factor(test$famrel)
+test$freetime <- factor(test$freetime)
+test$goout <- factor(test$goout)
+test$Dalc <- factor(test$Dalc)
+test$Walc <- factor(test$Walc)
+test$health <- factor(test$health)
+
+smp_size <- floor(0.75 * nrow(train))
+set.seed(123)
+train_ind <- sample(seq_len(nrow(train)), size = smp_size)
+train <- df_train[train_ind, ]
+valid <- df_train[-train_ind, ]
+
+
+
+```
+
+```{r}
+tree_rec <- recipe(score ~ ., data = train)
+tree_prep <- prep(tree_rec)
+juiced <- juice(tree_prep)
+```
+
+```{r}
+tune_spec <- rand_forest(
+  mtry = tune(),
+  trees = 1000,
+  min_n = tune()
+) %>%
+  set_mode("regression") %>%
+  set_engine("ranger")
+```
+
+
+```{r}
+tune_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(tune_spec)
+```
+
+```{r}
+doParallel::registerDoParallel()
+
+set.seed(123)
+trees_folds <- vfold_cv(train)
+tune_res <- tune_grid(
+  tune_wf,
+  resamples = trees_folds,
+  grid = 20
+)
+
+tune_res
+```
+
+```{r}
+tune_res %>%
+  show_best("rmse", n = 10) %>%
+  arrange(mtry)
+```
+```{r}
+tune_res %>%
+  collect_metrics() %>%
+  ggplot(aes(x = min_n, y = mean)) +
+  geom_point() + geom_line() + facet_wrap(~.metric, scales = 'free_y')
+```
+```{r}
+tune_res %>%
+  collect_metrics() %>%
+  ggplot(aes(x = mtry, y = mean)) +
+  geom_point() + geom_line() + facet_wrap(~.metric, scales = 'free_y')
+```
+```{r}
+rf_grid <- grid_regular(
+  mtry(range = c(10, 50)),
+  min_n(range = c(1, 30)),
+  levels = 5
+)
+
+set.seed(123)
+regular_res <- tune_grid(
+  tune_wf,
+  resamples = trees_folds,
+  grid = rf_grid
+)
+
+regular_res
+```
+
+```{r}
+regular_res %>%
+  collect_metrics() %>%
+  filter(.metric == "rmse") %>%
+  mutate(min_n = factor(min_n)) %>%
+  ggplot(aes(mtry, mean^2, color = min_n)) +
+  geom_line(alpha = 0.5, size = 1.5) +
+  geom_point() +
+  labs(y = "mse")
+```
+```{r}
+best_rmse <- select_best(regular_res, "rmse")
+
+final_rf <- finalize_model(
+  tune_spec,
+  best_rmse
+)
+
+final_rf
+```
+```{r}
+final_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(final_rf)
+
+final_res <- final_wf %>%
+  fit(train)
+
+y_pred <- final_res %>%
+  predict(new_data = valid)
+
+mse <- function(y_true, y_pred){
+  val <- mean((y_true-y_pred)^2)
+  return (val)
+}
+
+y_true <- as.vector(valid$score)
+y_pred <- as.vector(y_pred)
+
+mse(y_true, y_pred)
+
+sum((y_true-y_pred)^2)/length(y_true)
+
+
+
+```
+
