@@ -22,25 +22,16 @@ df_test <- read_rds("data/test.rds")
 
 
 ```{r}
-train_set$Medu <- factor(train_set$Medu)
-train_set$Fedu <- factor(train_set$Fedu)
-train_set$traveltime <- factor(train_set$studytime)
-train_set$famrel <- factor(train_set$famrel)
-train_set$freetime <- factor(train_set$freetime)
-train_set$goout <- factor(train_set$goout)
-train_set$Dalc <- factor(train_set$Dalc)
-train_set$Walc <- factor(train_set$Walc)
-train_set$health <- factor(train_set$health)
+df_train$Medu <- factor(df_train$Medu)
+df_train$Fedu <- factor(df_train$Fedu)
+df_train$traveltime <- factor(df_train$studytime)
+df_train$famrel <- factor(df_train$famrel)
+df_train$freetime <- factor(df_train$freetime)
+df_train$goout <- factor(df_train$goout)
+df_train$Dalc <- factor(df_train$Dalc)
+df_train$Walc <- factor(df_train$Walc)
+df_train$health <- factor(df_train$health)
 
-valid_set$Medu <- factor(valid_set$Medu)
-valid_set$Fedu <- factor(valid_set$Fedu)
-valid_set$traveltime <- factor(valid_set$studytime)
-valid_set$famrel <- factor(valid_set$famrel)
-valid_set$freetime <- factor(valid_set$freetime)
-valid_set$goout <- factor(valid_set$goout)
-valid_set$Dalc <- factor(valid_set$Dalc)
-valid_set$Walc <- factor(valid_set$Walc)
-valid_set$health <- factor(valid_set$health)
 
 ```
 
