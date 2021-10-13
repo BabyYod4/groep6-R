@@ -13,18 +13,18 @@ library(MASS)
 library(caret)
 
 
-train <- read_rds("data/train.rds")
+df_train <- read_rds("data/train.rds")
 df_test <- read_rds("data/test.rds")
 
-train$Medu <- factor(train$Medu)
-train$Fedu <- factor(train$Fedu)
-train$traveltime <- factor(train$studytime)
-train$famrel <- factor(train$famrel)
-train$freetime <- factor(train$freetime)
-train$goout <- factor(train$goout)
-train$Dalc <- factor(train$Dalc)
-train$Walc <- factor(train$Walc)
-train$health <- factor(train$health)
+df_train$Medu <- factor(df_train$Medu)
+df_train$Fedu <- factor(df_train$Fedu)
+df_train$traveltime <- factor(df_train$studytime)
+df_train$famrel <- factor(df_train$famrel)
+df_train$freetime <- factor(df_train$freetime)
+df_train$goout <- factor(df_train$goout)
+df_train$Dalc <- factor(df_train$Dalc)
+df_train$Walc <- factor(df_train$Walc)
+df_train$health <- factor(df_train$health)
 
 smp_size <- floor(0.75 * nrow(df_train))
 set.seed(123)
@@ -68,7 +68,7 @@ mse <- function(y_true, y_pred)
   return (val)
 }
 
-y_pred <- predict(step.model, newdata = valid_set)
+y_pred <- predict(step.model, newdata = valid)
 
-mse(valid_set$score, y_pred)
+mse(valid$score, y_pred)
 ```
