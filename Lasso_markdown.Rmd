@@ -1,0 +1,117 @@
+---
+title: "Lasso Regression"
+author: "Cem Kalender (2920734)"
+date: "10/13/2021"
+output: html_document
+---
+
+```{r}
+library(ISLR)
+library(MASS)
+library(tidyverse)
+library(glmnet)
+
+df_train <- read_rds("train.rds")
+df_test  <- read_rds("test.rds")
+```
+
+We will perform a Laso regression due to a high number of p L1 regularization allows for shrinking unassociated parameters to zero.
+
+```{r}
+#Before proceeding ensure that the missing values have been removed from the data----
+
+any(is.na(df_train)) # No NaNs
+```
+
+```{r}
+#making matrix of our dataset
+x <- df_train[,-31]
+x <- model.matrix(score ~., df_train)[,]
+dim(x)
+
+y <- df_train$score
+
+```
+
+splitting training and validation set:
+```{r}
+
+set.seed(123)
+train <- sample(1:nrow (x), size = nrow(x)*0.75)
+valid <- (-train)
+y.valid <- y[valid]
+
+```
+
+# defining lasso model and training it
+
+``` {r}
+
+lasso.mod <- glmnet(x[train , ], y[train], alpha = 1) #default lambda values
+dim (coef(lasso.mod))
+
+plot(lasso.mod) #coefficients against L1 regularization
+
+```
+
+
+# We now perform cross-validation and compute the associated test error.
+```{r}
+set.seed (1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
+
+plot (cv.out) #plotting the lambda values against MSE
+
+#λ chosen by cross-validation
+
+bestlam <- cv.out$lambda.min #extracting lambda value for lowest MSE by using CV
+
+#predicting on the validation set:
+lasso.pred <- predict(lasso.mod , s = bestlam ,
+                         newx = x[valid , ])
+
+
+
+#these are coefficients by the way:
+out <- glmnet (x[train, ], y[train], alpha = 1,
+                     lambda = bestlam)
+
+coefs <- predict(out, type = "coefficients",
+         s = bestlam)[1:31, ]
+
+which(coefs != 0)
+```
+
+# lets calculate MSE on validation set
+
+```{r}
+#calculating rMSE:
+mean((lasso.pred - y.valid)^2) #rMSE is 0.7342965
+
+#vector of predicted values for score:
+lasso.pred
+
+```
+
+# now lets estimate the scores from the test dataset
+
+```{r}
+
+#first lets use model.matrix to convert our categorical variables to dummy variables.
+
+x_test <- model.matrix(~.,data=df_test)[,]
+dim(x_test)
+
+#predicting on test data:
+lasso.predtest <- predict(lasso.mod , s = bestlam ,
+                       newx = x_test)
+
+
+lasso.predtest #predictions
+```
+
+Plotting the distribution of the predicted test values:
+```{r}
+hist(lasso.predtest, breaks=15) #distribution of predictions
+
+```
