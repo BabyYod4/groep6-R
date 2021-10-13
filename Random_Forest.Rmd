@@ -10,6 +10,7 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 ```{r}
 library(tidyverse)
 library(tidymodels)
+library(ranger)
 
 
 train <- read_rds("data/train.rds")
