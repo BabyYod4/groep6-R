@@ -1,0 +1,81 @@
+---
+title: "simple_regression"
+author: "Arsalan Anwari"
+date: "10/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r main, echo=FALSE}
+
+library(tidyverse)
+library(factoextra)
+library(e1071)
+
+df_train  <- read_rds("data/train.rds")
+
+df_new <- model.matrix(~ ., df_train)
+
+pca_res <- prcomp(df_new, cor = FALSE)
+
+##age absences matter only
+
+fviz_eig(pca_res)
+
+fviz_pca_ind(
+  pca_res,
+  col.ind = "cos2", # Color by the quality of representation
+  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+  repel = TRUE     # Avoid text overlapping
+)
+
+pca_res
+
+```
+
+We can conclude only two pca's realy matter which are age and absences, so now we plot score along age and absence
+
+```{r plot, echo=FALSE}
+
+mse <- function(y_true, y_pred)
+{
+  val <- mean((y_true-y_pred)^2)
+  return (val)
+}
+
+pow <- function(x, v){
+  val <- (x^v)
+  return (val)
+}
+
+
+df_filter <- filter(df_train, absences > quantile(absences, 0.01) & absences < quantile(absences, 0.99) )
+
+set.seed(150)
+
+smp_size <- floor(0.75 * nrow(df_filter))
+train_ind <- sample(seq_len(nrow(df_filter)), size = smp_size)
+
+train_set <- df_filter[train_ind, ]
+valid_set <- df_filter[-train_ind, ]
+
+#model <- svm(formula = score ~ log(absences) , data=train_set, type = "nu-regression", epsilon=0.25, cost=0.7071068)
+model <- lm(formula = score ~ pow(absences, 0.0001), data=train_set)
+
+y_pred_val <- predict(model, valid_set)
+
+score_val <- mse(valid_set$score, y_pred_val)
+cat("MSE: ", score_val , "\r\n")
+
+
+results <- 
+  ggplot(valid_set, aes(x=absences, y=score)) +
+  geom_point() +
+  geom_point(y=y_pred_val, color="red")
+
+results
+
+```
